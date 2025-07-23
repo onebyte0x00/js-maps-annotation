@@ -68,3 +68,30 @@ input, textarea {
 .annotation-item:hover {
     background: #f0f0f0;
 }
+
+/* Measurement styles */
+#measurement-result {
+    margin-top: 10px;
+    padding: 5px;
+    background: white;
+    border: 1px solid #ddd;
+}
+
+.measure-point {
+    background: #3388ff;
+    color: white;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 20px;
+    font-weight: bold;
+}
+
+.measure-label {
+    background: white;
+    color: #3388ff;
+    border: 2px solid #3388ff;
+    border-radius: 3px;
+    text-align: center;
+    line-height: 20px;
+    font-weight: bold;
+}
