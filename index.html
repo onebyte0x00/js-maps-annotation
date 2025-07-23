@@ -8,44 +8,96 @@
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
+    <!-- Leaflet Draw CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div id="map-container">
         <div id="map"></div>
         <div id="sidebar">
-            <h2>Map Annotations</h2>
+            <h2><i class="fas fa-map-marked-alt"></i> Map Annotations</h2>
             <div id="annotation-controls">
-                <button id="add-marker">Add Marker</button>
-                <button id="add-polygon">Add Polygon</button>
-                <button id="add-line">Add Line</button>
-                <button id="save-data">Save Annotations</button>
-                <button id="clear-all">Clear All</button>
+                <div class="control-group">
+                    <h3><i class="fas fa-draw-polygon"></i> Drawing Tools</h3>
+                    <button id="add-marker" class="control-btn">
+                        <i class="fas fa-map-marker-alt"></i> Add Marker
+                    </button>
+                    <button id="add-polygon" class="control-btn">
+                        <i class="fas fa-draw-polygon"></i> Add Polygon
+                    </button>
+                    <button id="add-line" class="control-btn">
+                        <i class="fas fa-slash"></i> Add Line
+                    </button>
+                    <button id="add-circle" class="control-btn">
+                        <i class="far fa-circle"></i> Add Circle
+                    </button>
+                    <button id="add-rectangle" class="control-btn">
+                        <i class="far fa-square"></i> Add Rectangle
+                    </button>
+                </div>
+                
+                <div class="control-group">
+                    <h3><i class="fas fa-ruler"></i> Measurement</h3>
+                    <button id="measure-distance" class="control-btn">
+                        <i class="fas fa-ruler-combined"></i> Measure Distance
+                    </button>
+                    <div id="measurement-result" class="measurement-display">
+                        <i class="fas fa-info-circle"></i> Click on map to start measuring
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3><i class="fas fa-cog"></i> Actions</h3>
+                    <button id="save-data" class="control-btn save-btn">
+                        <i class="fas fa-save"></i> Save Annotations
+                    </button>
+                    <button id="clear-all" class="control-btn danger-btn">
+                        <i class="fas fa-trash-alt"></i> Clear All
+                    </button>
+                </div>
             </div>
+            
             <div id="annotation-form" style="display: none;">
-                <h3>Annotation Details</h3>
-                <label for="annotation-title">Title:</label>
-                <input type="text" id="annotation-title">
-                <label for="annotation-description">Description:</label>
-                <textarea id="annotation-description"></textarea>
-                <button id="save-annotation">Save</button>
-                <button id="cancel-annotation">Cancel</button>
-       
-            <button id="add-circle">Add Circle</button>
-<button id="add-rectangle">Add Rectangle</button>
-<button id="measure-distance">Measure Distance</button>
-<div id="measurement-result"></div>
-            
-            
-            
+                <h3><i class="fas fa-edit"></i> Annotation Details</h3>
+                <div class="form-group">
+                    <label for="annotation-title"><i class="fas fa-heading"></i> Title:</label>
+                    <input type="text" id="annotation-title" placeholder="Enter title">
+                </div>
+                <div class="form-group">
+                    <label for="annotation-description"><i class="fas fa-align-left"></i> Description:</label>
+                    <textarea id="annotation-description" placeholder="Enter description"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button id="save-annotation" class="form-btn save-btn">
+                        <i class="fas fa-check"></i> Save
+                    </button>
+                    <button id="cancel-annotation" class="form-btn cancel-btn">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
             </div>
-            <div id="annotations-list"></div>
+            
+            <div id="annotations-list-container">
+                <h3><i class="fas fa-list-ul"></i> Annotations List</h3>
+                <div id="annotations-list"></div>
+            </div>
         </div>
     </div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Leaflet Draw JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    
+    <!-- Leaflet GeometryUtil -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.geometryutil/0.9.1/leaflet.geometryutil.min.js"></script>
     
     <!-- Custom JS -->
     <script src="js/app.js"></script>
