@@ -89,7 +89,7 @@ function saveCurrentAnnotation() {
         return;
     }
     
-    const annotation = {
+    const annotation = { 
         id: editingAnnotation ? editingAnnotation.id : Date.now(),
         title,
         description,
