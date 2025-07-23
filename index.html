@@ -3,103 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Leaflet Map Annotation Tool</title>
-    
-    <!-- Leaflet CSS -->
+    <title>Map Annotation Tool</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <!-- Leaflet Draw CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-    
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
-    
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div id="map-container">
+    <div id="app-container">
         <div id="map"></div>
-        <div id="sidebar">
-            <h2><i class="fas fa-map-marked-alt"></i> Map Annotations</h2>
-            <div id="annotation-controls">
-                <div class="control-group">
-                    <h3><i class="fas fa-draw-polygon"></i> Drawing Tools</h3>
-                    <button id="add-marker" class="control-btn">
-                        <i class="fas fa-map-marker-alt"></i> Add Marker
-                    </button>
-                    <button id="add-polygon" class="control-btn">
-                        <i class="fas fa-draw-polygon"></i> Add Polygon
-                    </button>
-                    <button id="add-line" class="control-btn">
-                        <i class="fas fa-slash"></i> Add Line
-                    </button>
-                    <button id="add-circle" class="control-btn">
-                        <i class="far fa-circle"></i> Add Circle
-                    </button>
-                    <button id="add-rectangle" class="control-btn">
-                        <i class="far fa-square"></i> Add Rectangle
-                    </button>
-                </div>
-                
-                <div class="control-group">
-                    <h3><i class="fas fa-ruler"></i> Measurement</h3>
-                    <button id="measure-distance" class="control-btn">
-                        <i class="fas fa-ruler-combined"></i> Measure Distance
-                    </button>
-                    <div id="measurement-result" class="measurement-display">
-                        <i class="fas fa-info-circle"></i> Click on map to start measuring
-                    </div>
-                </div>
-                
-                <div class="control-group">
-                    <h3><i class="fas fa-cog"></i> Actions</h3>
-                    <button id="save-data" class="control-btn save-btn">
-                        <i class="fas fa-save"></i> Save Annotations
-                    </button>
-                    <button id="clear-all" class="control-btn danger-btn">
-                        <i class="fas fa-trash-alt"></i> Clear All
-                    </button>
-                </div>
+        <div id="controls">
+            <div class="tool-buttons">
+                <button id="marker-btn" class="active" title="Add Marker">
+                    <svg viewBox="0 0 24 24"><path d="M12,2C8.14,2,5,5.14,5,9c0,5.25,7,13,7,13s7-7.75,7-13C19,5.14,15.86,2,12,2z"/></svg>
+                </button>
+                <button id="line-btn" title="Add Line">
+                    <svg viewBox="0 0 24 24"><path d="M3.5,18.5L9.5,12.5L13.5,16.5L22,6.92L20.59,5.5L13.5,13.5L9.5,9.5L2,17L3.5,18.5z"/></svg>
+                </button>
+                <button id="circle-btn" title="Add Circle">
+                    <svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/></svg>
+                </button>
+                <button id="measure-btn" title="Measure Distance">
+                    <svg viewBox="0 0 24 24"><path d="M3,4H5V10H3V4M6,5V9H8V5H6M9,6V8H11V6H9M12,7V8H13V7H12M14,6V8H16V6H14M17,5V9H19V5H17M20,4H22V10H20V4M3,14H5V20H3V14M6,15V19H8V15H6M9,16V18H11V16H9M12,17V18H13V17H12M14,16V18H16V16H14M17,15V19H19V15H17M20,14H22V20H20V14Z"/></svg>
+                </button>
             </div>
-            
-            <div id="annotation-form" style="display: none;">
-                <h3><i class="fas fa-edit"></i> Annotation Details</h3>
-                <div class="form-group">
-                    <label for="annotation-title"><i class="fas fa-heading"></i> Title:</label>
-                    <input type="text" id="annotation-title" placeholder="Enter title">
-                </div>
-                <div class="form-group">
-                    <label for="annotation-description"><i class="fas fa-align-left"></i> Description:</label>
-                    <textarea id="annotation-description" placeholder="Enter description"></textarea>
-                </div>
-                <div class="form-actions">
-                    <button id="save-annotation" class="form-btn save-btn">
-                        <i class="fas fa-check"></i> Save
-                    </button>
-                    <button id="cancel-annotation" class="form-btn cancel-btn">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
-                </div>
+            <div id="measurement-display">
+                Distance: <span id="distance-value">0</span> meters
             </div>
-            
-            <div id="annotations-list-container">
-                <h3><i class="fas fa-list-ul"></i> Annotations List</h3>
-                <div id="annotations-list"></div>
+            <div class="action-buttons">
+                <button id="save-btn">Save</button>
+                <button id="clear-btn">Clear All</button>
             </div>
         </div>
     </div>
 
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <!-- Leaflet Draw JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-    
-    <!-- Leaflet GeometryUtil -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.geometryutil/0.9.1/leaflet.geometryutil.min.js"></script>
-    
-    <!-- Custom JS -->
     <script src="js/app.js"></script>
 </body>
 </html>
