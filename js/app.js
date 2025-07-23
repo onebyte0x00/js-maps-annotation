@@ -1,6 +1,9 @@
 // Initialize the map
 const map = L.map('map').setView([51.505, -0.09], 13);
 
+// Add this variable at the top with other variables
+let currentCircle = null;
+
 // Add tile layer
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -65,7 +68,7 @@ function setActiveTool(tool) {
         map.off('click', handleMapClick);
         map.on('click', handleMeasurementClick);
     }
-}
+} 
 
 function handleMapClick(e) {
     if (currentTool === 'marker') {
@@ -78,17 +81,47 @@ function handleMapClick(e) {
             map.on('click', finishLine);
         }
     } else if (currentTool === 'circle') {
+        // Start drawing a circle
         const circle = L.circle(e.latlng, {
             color: 'blue',
             fillColor: '#3388ff',
             fillOpacity: 0.3,
-            radius: 500
+            radius: 10  // Start with small radius
         }).addTo(drawnItems);
         
-        const area = (Math.PI * 500 * 500).toFixed(2);
-        circle.bindPopup(`Circle (Radius: 500m, Area: ${area}m²)`).openPopup();
+        // Track the center point and circle
+        currentCircle = {
+            center: e.latlng,
+            layer: circle
+        };
+        
+        map.on('mousemove', updateCircleRadius);
+        map.on('click', finishCircle);
     }
 }
+
+function updateCircleRadius(e) {
+    if (currentCircle) {
+        // Calculate radius based on distance from center to mouse position
+        const radius = currentCircle.center.distanceTo(e.latlng);
+        currentCircle.layer.setRadius(radius);
+    }
+}
+
+function finishCircle(e) {
+    if (currentCircle) {
+        const radius = currentCircle.center.distanceTo(e.latlng);
+        const area = (Math.PI * radius * radius).toFixed(2);
+        currentCircle.layer.bindPopup(`Circle (Radius: ${radius.toFixed(2)}m, Area: ${area}m²)`).openPopup();
+        
+        // Clean up
+        map.off('mousemove', updateCircleRadius);
+        map.off('click', finishCircle);
+        currentCircle = null;
+    }
+}
+ 
+
 
 function updateLine(e) {
     const layers = drawnItems.getLayers();
