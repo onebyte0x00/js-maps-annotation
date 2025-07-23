@@ -1,229 +1,190 @@
 // Initialize the map
 const map = L.map('map').setView([51.505, -0.09], 13);
 
-// Add OpenStreetMap tiles
+// Add tile layer
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
-// Variables to manage annotations
-let currentAnnotations = [];
+// Variables
 let drawnItems = new L.FeatureGroup();
 map.addLayer(drawnItems);
 
-let drawControl;
-let currentDrawing = null;
-let editingAnnotation = null;
+let currentTool = null;
+let measurePoints = [];
+let measureLine = null;
+let measureLabels = [];
+let totalDistance = 0;
 
 // DOM elements
-const addMarkerBtn = document.getElementById('add-marker');
-const addPolygonBtn = document.getElementById('add-polygon');
-const addLineBtn = document.getElementById('add-line');
-const saveDataBtn = document.getElementById('save-data');
-const clearAllBtn = document.getElementById('clear-all');
-const annotationForm = document.getElementById('annotation-form');
-const saveAnnotationBtn = document.getElementById('save-annotation');
-const cancelAnnotationBtn = document.getElementById('cancel-annotation');
-const annotationsList = document.getElementById('annotations-list');
-
-// Load saved annotations if they exist
-loadAnnotations();
+const markerBtn = document.getElementById('marker-btn');
+const lineBtn = document.getElementById('line-btn');
+const circleBtn = document.getElementById('circle-btn');
+const measureBtn = document.getElementById('measure-btn');
+const saveBtn = document.getElementById('save-btn');
+const clearBtn = document.getElementById('clear-btn');
+const distanceValue = document.getElementById('distance-value');
 
 // Event listeners
-addMarkerBtn.addEventListener('click', () => startDrawing('marker'));
-addPolygonBtn.addEventListener('click', () => startDrawing('polygon'));
-addLineBtn.addEventListener('click', () => startDrawing('polyline'));
-saveDataBtn.addEventListener('click', saveAnnotationsToFile);
-clearAllBtn.addEventListener('click', clearAllAnnotations);
-saveAnnotationBtn.addEventListener('click', saveCurrentAnnotation);
-cancelAnnotationBtn.addEventListener('click', cancelCurrentAnnotation);
+markerBtn.addEventListener('click', () => setActiveTool('marker'));
+lineBtn.addEventListener('click', () => setActiveTool('line'));
+circleBtn.addEventListener('click', () => setActiveTool('circle'));
+measureBtn.addEventListener('click', () => setActiveTool('measure'));
+saveBtn.addEventListener('click', saveAnnotations);
+clearBtn.addEventListener('click', clearAll);
 
 // Functions
-function startDrawing(type) {
-    // Cancel any current drawing
-    if (currentDrawing) {
-        map.removeLayer(currentDrawing);
+function setActiveTool(tool) {
+    // Reset measurement if switching tools
+    if (currentTool === 'measure') {
+        resetMeasurement();
     }
     
-    // Reset form
-    annotationForm.style.display = 'none';
-    document.getElementById('annotation-title').value = '';
-    document.getElementById('annotation-description').value = '';
-    editingAnnotation = null;
+    // Set active tool
+    currentTool = tool;
     
-    let shape;
-    
-    switch(type) {
-        case 'marker':
-            map.on('click', addMarker);
-            break;
-        case 'polygon':
-            shape = new L.Draw.Polygon(map);
-            shape.enable();
-            break;
-        case 'polyline':
-            shape = new L.Draw.Polyline(map);
-            shape.enable();
-            break;
-    }
-    
-    currentDrawing = type;
-}
-
-function addMarker(e) {
-    map.off('click', addMarker);
-    
-    const marker = L.marker(e.latlng).addTo(drawnItems);
-    currentDrawing = marker;
-    
-    // Show form to add details
-    annotationForm.style.display = 'block';
-}
-
-function saveCurrentAnnotation() {
-    const title = document.getElementById('annotation-title').value;
-    const description = document.getElementById('annotation-description').value;
-    
-    if (!title) {
-        alert('Please enter a title');
-        return;
-    }
-    
-    const annotation = { 
-        id: editingAnnotation ? editingAnnotation.id : Date.now(),
-        title,
-        description,
-        type: getFeatureType(currentDrawing),
-        geometry: currentDrawing.toGeoJSON().geometry,
-        properties: {}
-    };
-    
-    if (editingAnnotation) {
-        // Update existing annotation
-        const index = currentAnnotations.findIndex(a => a.id === editingAnnotation.id);
-        currentAnnotations[index] = annotation;
-        
-        // Remove the old layer and add the new one
-        drawnItems.eachLayer(layer => {
-            if (layer._leaflet_id === editingAnnotation._leaflet_id) {
-                drawnItems.removeLayer(layer);
-            }
-        });
-    } else {
-        // Add new annotation
-        currentAnnotations.push(annotation);
-    }
-    
-    // Add to map with popup
-    const layer = L.geoJSON(annotation.geometry).addTo(drawnItems);
-    layer.bindPopup(`<b>${annotation.title}</b><br>${annotation.description}`);
-    
-    // Store leaflet id for later reference
-    annotation._leaflet_id = layer._leaflet_id;
-    
-    // Reset form and current drawing
-    annotationForm.style.display = 'none';
-    currentDrawing = null;
-    editingAnnotation = null;
-    
-    // Update the annotations list
-    updateAnnotationsList();
-}
-
-function cancelCurrentAnnotation() {
-    if (currentDrawing) {
-        if (typeof currentDrawing === 'string') {
-            map.off('click', addMarker);
-        } else {
-            drawnItems.removeLayer(currentDrawing);
-        }
-    }
-    
-    annotationForm.style.display = 'none';
-    currentDrawing = null;
-    editingAnnotation = null;
-}
-
-function getFeatureType(layer) {
-    if (layer instanceof L.Marker) return 'marker';
-    if (layer instanceof L.Polygon) return 'polygon';
-    if (layer instanceof L.Polyline) return 'polyline';
-    return 'unknown';
-}
-
-function updateAnnotationsList() {
-    annotationsList.innerHTML = '';
-    
-    currentAnnotations.forEach(annotation => {
-        const item = document.createElement('div');
-        item.className = 'annotation-item';
-        item.innerHTML = `<strong>${annotation.title}</strong><br>${annotation.type}`;
-        
-        item.addEventListener('click', () => {
-            // Center map on the annotation
-            const layer = findLayerById(annotation._leaflet_id);
-            if (layer) {
-                map.fitBounds(layer.getBounds());
-                layer.openPopup();
-            }
-        });
-        
-        // Add edit button
-        const editBtn = document.createElement('button');
-        editBtn.textContent = 'Edit';
-        editBtn.style.marginTop = '5px';
-        editBtn.style.backgroundColor = '#2196F3';
-        editBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            editAnnotation(annotation);
-        });
-        
-        item.appendChild(editBtn);
-        annotationsList.appendChild(item);
+    // Update UI
+    document.querySelectorAll('.tool-buttons button').forEach(btn => {
+        btn.classList.remove('active');
     });
+    
+    if (tool === 'marker') {
+        markerBtn.classList.add('active');
+        map.off('click', handleMapClick);
+        map.on('click', handleMapClick);
+    } else if (tool === 'line') {
+        lineBtn.classList.add('active');
+        map.off('click', handleMapClick);
+        map.on('click', handleMapClick);
+    } else if (tool === 'circle') {
+        circleBtn.classList.add('active');
+        map.off('click', handleMapClick);
+        map.on('click', handleMapClick);
+    } else if (tool === 'measure') {
+        measureBtn.classList.add('active');
+        map.off('click', handleMapClick);
+        map.on('click', handleMeasurementClick);
+    }
 }
 
-function findLayerById(id) {
-    let foundLayer = null;
-    drawnItems.eachLayer(layer => {
-        if (layer._leaflet_id === id) {
-            foundLayer = layer;
+function handleMapClick(e) {
+    if (currentTool === 'marker') {
+        const marker = L.marker(e.latlng).addTo(drawnItems);
+        marker.bindPopup(`Marker at ${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`).openPopup();
+    } else if (currentTool === 'line') {
+        if (!drawnItems.getLayers().some(layer => layer instanceof L.Polyline && layer._currentLatLngs)) {
+            const polyline = L.polyline([e.latlng], {color: 'red'}).addTo(drawnItems);
+            map.on('mousemove', updateLine);
+            map.on('click', finishLine);
         }
-    });
-    return foundLayer;
+    } else if (currentTool === 'circle') {
+        const circle = L.circle(e.latlng, {
+            color: 'blue',
+            fillColor: '#3388ff',
+            fillOpacity: 0.3,
+            radius: 500
+        }).addTo(drawnItems);
+        
+        const area = (Math.PI * 500 * 500).toFixed(2);
+        circle.bindPopup(`Circle (Radius: 500m, Area: ${area}m²)`).openPopup();
+    }
 }
 
-function editAnnotation(annotation) {
-    // Find the layer
-    const layer = findLayerById(annotation._leaflet_id);
-    if (!layer) return;
+function updateLine(e) {
+    const layers = drawnItems.getLayers();
+    const lastLine = layers.find(layer => layer instanceof L.Polyline && layer._currentLatLngs);
     
-    // Set current drawing and editing annotation
-    currentDrawing = layer;
-    editingAnnotation = annotation;
-    
-    // Show form with current values
-    document.getElementById('annotation-title').value = annotation.title;
-    document.getElementById('annotation-description').value = annotation.description;
-    annotationForm.style.display = 'block';
+    if (lastLine) {
+        const latLngs = lastLine.getLatLngs();
+        latLngs.push(e.latlng);
+        lastLine.setLatLngs(latLngs);
+    }
 }
 
-function saveAnnotationsToFile() {
-    const geojson = {
-        type: "FeatureCollection",
-        features: currentAnnotations.map(annotation => ({
-            type: "Feature",
-            geometry: annotation.geometry,
-            properties: {
-                id: annotation.id,
-                title: annotation.title,
-                description: annotation.description,
-                type: annotation.type
+function finishLine(e) {
+    map.off('mousemove', updateLine);
+    map.off('click', finishLine);
+    
+    const layers = drawnItems.getLayers();
+    const lastLine = layers.find(layer => layer instanceof L.Polyline && layer._currentLatLngs);
+    
+    if (lastLine) {
+        const length = lastLine.getLatLngs().reduce((total, latLng, i, arr) => {
+            if (i > 0) {
+                return total + arr[i-1].distanceTo(latLng);
             }
-        }))
-    };
+            return total;
+        }, 0);
+        
+        lastLine.bindPopup(`Line (Length: ${length.toFixed(2)} meters)`).openPopup();
+    }
+}
+
+function handleMeasurementClick(e) {
+    measurePoints.push(e.latlng);
     
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(geojson, null, 2));
+    // Add point marker
+    const marker = L.circleMarker(e.latlng, {
+        radius: 5,
+        fillColor: "#3388ff",
+        color: "#fff",
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 1
+    }).addTo(map);
+    measureLabels.push(marker);
+    
+    // Update line if we have more than one point
+    if (measurePoints.length > 1) {
+        if (measureLine) {
+            map.removeLayer(measureLine);
+        }
+        
+        measureLine = L.polyline(measurePoints, {
+            color: '#3388ff',
+            weight: 3,
+            dashArray: '5, 5'
+        }).addTo(map);
+        
+        // Calculate distance
+        const segmentDistance = measurePoints[measurePoints.length-2].distanceTo(e.latlng);
+        totalDistance += segmentDistance;
+        distanceValue.textContent = totalDistance.toFixed(2);
+        
+        // Add distance label
+        const midPoint = L.latLng(
+            (measurePoints[measurePoints.length-2].lat + e.latlng.lat) / 2,
+            (measurePoints[measurePoints.length-2].lng + e.latlng.lng) / 2
+        );
+        
+        const label = L.marker(midPoint, {
+            icon: L.divIcon({
+                className: 'measurement-label',
+                html: `${segmentDistance.toFixed(2)}m`,
+                iconSize: [60, 24]
+            })
+        }).addTo(map);
+        measureLabels.push(label);
+    }
+}
+
+function resetMeasurement() {
+    measurePoints = [];
+    totalDistance = 0;
+    distanceValue.textContent = '0';
+    
+    if (measureLine) {
+        map.removeLayer(measureLine);
+        measureLine = null;
+    }
+    
+    measureLabels.forEach(label => map.removeLayer(label));
+    measureLabels = [];
+}
+
+function saveAnnotations() {
+    const geoJson = drawnItems.toGeoJSON();
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(geoJson, null, 2));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
     downloadAnchorNode.setAttribute("download", "annotations.geojson");
@@ -232,27 +193,9 @@ function saveAnnotationsToFile() {
     downloadAnchorNode.remove();
 }
 
-function loadAnnotations() {
-    // In a real app, you would load from a file or server
-    // For now, we'll just initialize an empty array
-    currentAnnotations = [];
-    updateAnnotationsList();
-}
-
-function clearAllAnnotations() {
+function clearAll() {
     if (confirm('Are you sure you want to clear all annotations?')) {
-        currentAnnotations = [];
         drawnItems.clearLayers();
-        updateAnnotationsList();
+        resetMeasurement();
     }
 }
-
-// Handle drawn features from the control
-map.on(L.Draw.Event.CREATED, function (e) {
-    const layer = e.layer;
-    drawnItems.addLayer(layer);
-    currentDrawing = layer;
-    
-    // Show form to add details
-    annotationForm.style.display = 'block';
-});
